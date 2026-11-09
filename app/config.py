@@ -44,6 +44,16 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
 
+    # Email OTP via Brevo (transactional email API)
+    BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+    BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL")
+    BREVO_SENDER_NAME = os.getenv("BREVO_SENDER_NAME", "BloodLink")
+    OTP_TTL_MINUTES = int(os.getenv("OTP_TTL_MINUTES", "10"))
+    OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "5"))
+    OTP_RESEND_SECONDS = int(os.getenv("OTP_RESEND_SECONDS", "60"))
+    # Local dev only: also log OTP codes. Never enable in production.
+    DEV_LOG_OTP = os.getenv("DEV_LOG_OTP") == "1"
+
 
 class TestConfig(Config):
     TESTING = True

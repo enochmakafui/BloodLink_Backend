@@ -21,7 +21,7 @@ def seed_admin():
         if User.query.filter_by(email=email).first():
             print(f"Admin {email} already exists - nothing to do.")
             return
-        admin = User(email=email, role="admin")
+        admin = User(email=email, role="admin", email_verified=True)
         admin.set_password(password)
         db.session.add(admin)
         db.session.commit()

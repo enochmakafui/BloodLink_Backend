@@ -25,6 +25,13 @@ def auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
+def verify_user(email):
+    """Mark an account email as verified (skips the OTP flow in tests that are not about it)."""
+    user = User.query.filter_by(email=email).first()
+    user.email_verified = True
+    db.session.commit()
+
+
 def login(client, email, password="password123"):
     r = client.post("/api/auth/login", json={"email": email, "password": password})
     assert r.status_code == 200, r.get_json()
@@ -39,6 +46,7 @@ def make_donor(client):
         body.update(extra)
         r = client.post("/api/auth/register/donor", json=body)
         assert r.status_code == 201, r.get_json()
+        verify_user(email)
         return auth(login(client, email))
     return _make
 
@@ -50,13 +58,14 @@ def make_hospital(client):
             "email": email, "password": "password123", "name": name, "phone": "0302000000",
             "city": city, "region": region, "address": "Guggisberg Ave"})
         assert r.status_code == 201, r.get_json()
+        verify_user(email)
         return auth(login(client, email))
     return _make
 
 
 @pytest.fixture()
 def admin_headers(client, app):
-    admin = User(email="admin@test.com", role="admin")
+    admin = User(email="admin@test.com", role="admin", email_verified=True)
     admin.set_password("password123")
     db.session.add(admin)
     db.session.commit()

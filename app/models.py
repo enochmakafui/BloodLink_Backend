@@ -21,6 +21,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # donor | hospital | admin
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    # New accounts start unverified; server_default=true keeps pre-existing rows (and the admin) verified.
+    email_verified = db.Column(db.Boolean, nullable=False, default=False, server_default=db.true())
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     donor_profile = db.relationship("DonorProfile", back_populates="user", uselist=False,
@@ -49,6 +51,7 @@ class User(db.Model):
             "email": self.email,
             "role": self.role,
             "is_active": self.is_active,
+            "email_verified": self.email_verified,
             "created_at": iso(self.created_at),
         }
 
@@ -183,3 +186,17 @@ class Notification(db.Model):
             "is_read": self.is_read,
             "created_at": iso(self.created_at),
         }
+
+
+class OtpCode(db.Model):
+    """One-time email codes. Only an HMAC of the code is stored, never the code itself."""
+    __tablename__ = "otp_codes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    purpose = db.Column(db.String(20), nullable=False)  # verify_email | reset_password
+    code_hash = db.Column(db.String(64), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+    used = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)

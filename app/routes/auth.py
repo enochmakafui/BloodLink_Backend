@@ -3,6 +3,7 @@ from flask_jwt_extended import create_access_token
 
 from ..extensions import db
 from ..models import DonorProfile, HospitalProfile, User
+from ..otp import RESET_PASSWORD, VERIFY_EMAIL, check_otp, issue_otp
 from ..utils import (BLOOD_TYPES, ApiError, clean_str, json_body, login_required,
                      valid_choice, valid_email, valid_password, valid_phone)
 
@@ -25,6 +26,26 @@ def _user_with_profile(user):
     return out
 
 
+def _login_payload(user):
+    token = create_access_token(identity=str(user.id), additional_claims={"role": user.role})
+    return {"access_token": token, "role": user.role, "user": _user_with_profile(user)}
+
+
+def _registered(user):
+    """201 response for a new account; an email OTP is sent for verification."""
+    issue_otp(user, VERIFY_EMAIL)
+    out = _user_with_profile(user)
+    out["verification_required"] = True
+    return jsonify(out), 201
+
+
+def _user_by_email(data):
+    email = data.get("email")
+    if not isinstance(email, str) or not email.strip():
+        raise ApiError("'email' is required")
+    return User.query.filter_by(email=email.strip().lower()).first()
+
+
 @bp.post("/register/donor")
 def register_donor():
     data = json_body(request)
@@ -39,7 +60,7 @@ def register_donor():
     )
     db.session.add(user)
     db.session.commit()
-    return jsonify(_user_with_profile(user)), 201
+    return _registered(user)
 
 
 @bp.post("/register/hospital")
@@ -56,7 +77,7 @@ def register_hospital():
     )
     db.session.add(user)
     db.session.commit()
-    return jsonify(_user_with_profile(user)), 201
+    return _registered(user)
 
 
 @bp.post("/login")
@@ -71,15 +92,57 @@ def login():
         raise ApiError("Invalid email or password", 401)
     if not user.is_active:
         raise ApiError("This account has been deactivated", 403)
-    token = create_access_token(identity=str(user.id), additional_claims={"role": user.role})
-    return jsonify({
-        "access_token": token,
-        "role": user.role,
-        "user": _user_with_profile(user),
-    })
+    if not user.email_verified:
+        raise ApiError("Please verify your email before logging in", 403, code="email_not_verified")
+    return jsonify(_login_payload(user))
 
 
 @bp.get("/me")
 @login_required
 def me():
     return jsonify(_user_with_profile(g.current_user))
+
+
+# ---------------------------------------------------------------- email OTP
+
+GENERIC_SENT = {"message": "If that email is registered, a code has been sent."}
+
+
+@bp.post("/verify-email")
+def verify_email():
+    data = json_body(request)
+    user = _user_by_email(data)
+    check_otp(user, VERIFY_EMAIL, data.get("otp"))
+    user.email_verified = True
+    db.session.commit()
+    return jsonify(_login_payload(user))  # verified -> sign the user straight in
+
+
+@bp.post("/resend-otp")
+def resend_otp():
+    user = _user_by_email(json_body(request))
+    if user is not None and user.is_active and not user.email_verified:
+        issue_otp(user, VERIFY_EMAIL)  # silently skipped inside the cooldown
+    return jsonify(GENERIC_SENT)
+
+
+@bp.post("/forgot-password")
+def forgot_password():
+    user = _user_by_email(json_body(request))
+    if user is not None and user.is_active:
+        issue_otp(user, RESET_PASSWORD)
+    return jsonify(GENERIC_SENT)
+
+
+@bp.post("/reset-password")
+def reset_password():
+    data = json_body(request)
+    new_password = data.get("new_password")
+    if not isinstance(new_password, str) or len(new_password) < 8:
+        raise ApiError("Password must be at least 8 characters")
+    user = _user_by_email(data)
+    check_otp(user, RESET_PASSWORD, data.get("otp"))
+    user.set_password(new_password)
+    user.email_verified = True  # they just proved they control the inbox
+    db.session.commit()
+    return jsonify({"message": "Password updated. You can now sign in."})

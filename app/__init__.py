@@ -37,7 +37,10 @@ def create_app(config_class=Config):
 def register_error_handlers(app):
     @app.errorhandler(ApiError)
     def api_error(e):
-        return jsonify({"error": e.message}), e.status
+        body = {"error": e.message}
+        if e.code:
+            body["code"] = e.code
+        return jsonify(body), e.status
 
     @app.errorhandler(HTTPException)
     def http_error(e):

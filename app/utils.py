@@ -49,10 +49,11 @@ def donor_matches_request(donor, blood_request):
 class ApiError(Exception):
     """Raise anywhere in a route; rendered as {"error": message}."""
 
-    def __init__(self, message, status=400):
+    def __init__(self, message, status=400, code=None):
         super().__init__(message)
         self.message = message
         self.status = status
+        self.code = code  # optional machine-readable code for the frontend
 
 
 # ---------------------------------------------------------------- auth

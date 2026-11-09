@@ -2,6 +2,7 @@ import pytest
 
 from app.models import User
 from app.extensions import db
+from tests.conftest import verify_user
 
 DONOR = {"email": "a@test.com", "password": "password123", "full_name": "Ama", "phone": "0241234567",
          "blood_type": "O+", "city": "Accra", "region": "Greater Accra"}
@@ -11,6 +12,7 @@ def test_register_and_login_donor(client):
     r = client.post("/api/auth/register/donor", json=DONOR)
     assert r.status_code == 201
     assert "password" not in r.get_data(as_text=True)
+    verify_user("a@test.com")
     r = client.post("/api/auth/login", json={"email": "A@test.com", "password": "password123"})
     body = r.get_json()
     assert body["role"] == "donor"
