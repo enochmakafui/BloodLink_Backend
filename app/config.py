@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import timedelta
 
 from dotenv import load_dotenv
@@ -10,9 +11,12 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY") or "dev-secret-change-me-please-32-bytes-min"
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY") or "dev-jwt-secret-change-me-please-32-bytes"
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_EXPIRES_HOURS", "24")))
-    # Render/Heroku may supply "postgres://", which SQLAlchemy no longer accepts
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///bloodlink.db").replace(
-        "postgres://", "postgresql://", 1
+    # Render supplies "postgres://" or "postgresql://"; SQLAlchemy 2.1 would default to
+    # the psycopg3 driver for those, so pin the installed psycopg2 driver explicitly.
+    SQLALCHEMY_DATABASE_URI = re.sub(
+        r"^postgres(ql)?://",
+        "postgresql+psycopg2://",
+        os.getenv("DATABASE_URL", "sqlite:///bloodlink.db"),
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
