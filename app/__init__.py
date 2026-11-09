@@ -26,6 +26,10 @@ def create_app(config_class=Config):
     for bp in (auth_bp, donors_bp, hospitals_bp, requests_bp, notifications_bp, admin_bp):
         app.register_blueprint(bp)
 
+    @app.get("/api/health")
+    def health():
+        return jsonify({"status": "ok"})
+
     register_error_handlers(app)
     return app
 

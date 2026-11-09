@@ -10,7 +10,10 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY") or "dev-secret-change-me-please-32-bytes-min"
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY") or "dev-jwt-secret-change-me-please-32-bytes"
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv("JWT_EXPIRES_HOURS", "24")))
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///bloodlink.db")
+    # Render/Heroku may supply "postgres://", which SQLAlchemy no longer accepts
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///bloodlink.db").replace(
+        "postgres://", "postgresql://", 1
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
 
