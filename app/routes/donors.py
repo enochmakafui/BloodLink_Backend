@@ -1,6 +1,7 @@
 from flask import Blueprint, g, jsonify, request
 from sqlalchemy import case, func
 
+from .. import exports
 from ..extensions import db
 from ..models import BloodRequest, DonorResponse, HospitalProfile
 from ..utils import (DONOR_COMPATIBILITY, RESPONSE_STATUSES, URGENCY_RANK, ApiError, clean_str,
@@ -14,6 +15,15 @@ bp = Blueprint("donors", __name__, url_prefix="/api/donors")
 @role_required("donor")
 def get_me():
     return jsonify(g.current_user.donor_profile.to_dict())
+
+
+@bp.get("/me/form")
+@role_required("donor")
+def print_form():
+    """Printable PDF copy of the donor's submitted form (add ?download=1 to force a download)."""
+    body = exports.donor_form_pdf(g.current_user.donor_profile)
+    return exports.download(body, "application/pdf", "bloodlink-donor-form.pdf",
+                            inline=request.args.get("download") != "1")
 
 
 @bp.put("/me")

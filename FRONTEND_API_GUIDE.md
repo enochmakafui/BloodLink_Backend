@@ -188,6 +188,9 @@ restore a session and refresh profile data.
 ### Donor endpoints (🩸 role `donor`)
 
 #### `GET /api/donors/me` → DonorProfile
+#### `GET /api/donors/me/form` → PDF (printable copy of the donor's form)
+Returns `application/pdf` (inline). Fetch with the auth header, create a blob URL, open it in a new tab / iframe and call `window.print()`. Add `?download=1` to force a file download.
+
 #### `PUT /api/donors/me` → updated DonorProfile
 Send **only the fields to change**. Editable: `phone, city, region, gps_address, is_available (boolean),
 last_donation_date (YYYY-MM-DD or null)`. **Name and blood type cannot be changed.**
@@ -278,6 +281,8 @@ compute the badge client-side from `is_read === false`.
 | `PATCH /api/admin/hospitals/{hospital_id}/verify` | No body. Sets `is_verified = true`. (`hospital_id` = hospital **profile** id.) Cannot un-verify. |
 | `PATCH /api/admin/users/{user_id}/active` | Body `{"is_active": false}` – deactivate/reactivate. `user_id` = **user** id (`user_id` field on profiles). Cannot deactivate yourself (400). |
 | `GET /api/admin/requests?status=open` | BloodRequest[]; `status` filter optional |
+| `DELETE /api/admin/users/{user_id}` | **Permanently** deletes a donor/hospital account with its profile, notifications and (for hospitals) its requests + responses. Returns `{deleted:true,user_id}`. 400 for yourself or another admin, 404 if missing. Irreversible – confirm in the UI; keep deactivate for the reversible option. |
+| `GET /api/admin/reports/{donors\|hospitals\|requests}?format=pdf\|docx\|xlsx` | File download (`word`/`excel` also accepted). Donor/request reports honour the same filters as the list endpoints. Fetch with the auth header, then save the blob (`fetch` → `res.blob()` → `<a download>`). |
 
 A deactivated user gets 401 on their next call and 403 at login.
 
