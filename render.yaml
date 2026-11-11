@@ -16,6 +16,8 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         value: "*"
+      - key: GOOGLE_CLIENT_ID
+        value: 391369153857-ct65sdhbq4fk4neeaiaqp4mggej3b373.apps.googleusercontent.com
       - key: DATABASE_URL
         sync: false # set in the Render dashboard (Supabase Session pooler URL)
 

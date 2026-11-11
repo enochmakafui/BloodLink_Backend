@@ -160,6 +160,23 @@ button for 60 s client-side). All code errors return the same `400 {"error": "In
 Screens to build: **Verify email** (email prefilled, 6-digit input, resend with countdown),
 **Forgot password** (email) → **Reset password** (email, code, new password).
 
+#### Sign in with Google: `POST /api/auth/google` 🔓
+Google client ID: `391369153857-ct65sdhbq4fk4neeaiaqp4mggej3b373.apps.googleusercontent.com`
+(use it with Google Identity Services: `google.accounts.id.initialize({client_id, callback})`; the callback gets
+`response.credential`, a Google ID token. The frontend origin must be listed under *Authorized JavaScript origins*
+for this client in Google Cloud Console.)
+
+Body: `{"id_token": "<response.credential>"}` (`credential` also accepted).
+- **Existing account** → `200`, same payload as login (`access_token`, `role`, `user`). If the account was
+  email-unverified it is now verified.
+- **New email** → `404 {"error": "...", "code": "registration_required", "email": "...", "name": "..."}`.
+  Show a "choose your role + complete profile" form (prefill email/name), then resend the **same
+  id_token** with `role: "donor"|"hospital"` plus the profile fields of the matching register endpoint
+  (no email/password). Success → `201`, login payload; no OTP step.
+- Errors: `401 Invalid Google credential` / `Google account email is not verified`, `403` deactivated, `400` validation.
+- Google users get a random password; they can set one through *Forgot password* if they want email login too.
+- ID tokens are short-lived (~1 h): if the profile form takes long, ask Google for a fresh one.
+
 #### `GET /api/auth/me` 🔑 → `200`
 Returns the same `user` object (with `profile`; `profile` is `null` for admins). Use on app start to
 restore a session and refresh profile data.

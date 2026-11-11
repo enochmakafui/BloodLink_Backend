@@ -44,6 +44,12 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
 
+    # Google Sign-In (public OAuth client ID, not a secret)
+    GOOGLE_CLIENT_ID = os.getenv(
+        "GOOGLE_CLIENT_ID",
+        "391369153857-ct65sdhbq4fk4neeaiaqp4mggej3b373.apps.googleusercontent.com",
+    )
+
     # Email OTP via Brevo (transactional email API)
     BREVO_API_KEY = os.getenv("BREVO_API_KEY")
     BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL")
